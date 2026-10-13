@@ -137,11 +137,7 @@ export default async function middleware(req) {
 
   // Sama seperti backend lama: tolak akses langsung ke *.html mentah
   // supaya orang cuma bisa lewat clean URL (/dashboard, bukan /dashboard.html).
-  if (pathname.toLowerCase().endsWith('.html')) {
-    return new Response('Not Found', { status: 404 });
-  }
-
-  if (OWNER_PAGE_ROUTES.has(pathname)) {
+if (OWNER_PAGE_ROUTES.has(pathname)) {
     const role = await getRole(req);
     if (role !== 'owner') {
       return Response.redirect(new URL('/login', req.url), 302);
