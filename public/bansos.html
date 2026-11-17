@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bansos Warhead — {{brand.storeName}}</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/notebook.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="/fa/css/all.min.css" id="fa-local">
+  <script>
+    document.querySelector('#fa-local') && (function(){
+      var t=document.querySelector('link[href*="jsdelivr"][href*="fontawesome"]');
+      t&&t.addEventListener('load',function(){var l=document.getElementById('fa-local');l&&l.parentNode.removeChild(l);});
+    })();
+  </script>
+  <style>
+    .bansos-tabs {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px;
+    }
+    .bansos-tabs .btn { white-space: nowrap; }
+    .bansos-tab-content { display: none; }
+    .bansos-tab-content.active { display: block; }
+
+    .bansos-stat-card { text-align: center; padding: 18px 14px; }
+    .bansos-stat-card .stat-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 6px; }
+    .bansos-stat-card .stat-value { font-family: var(--font-display); font-size: 30px; font-weight: 800; color: var(--primary); line-height: 1.1; }
+    .bansos-stat-card .stat-quota { margin-top: 10px; font-family: var(--font-mono); }
+
+    .am-server-switch { display: flex; gap: 8px; }
+    .am-server-switch .btn { flex: 1; }
+    .bansos-step { transition: opacity .2s; }
+    .bansos-step.locked { opacity: .45; pointer-events: none; }
+
+    .bansos-result-box {
+      background: var(--bg-soft); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 14px; margin-top: 14px;
+    }
+    .bansos-result-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .bansos-result-row:last-child { margin-bottom: 0; }
+    .bansos-result-label { flex-shrink: 0; width: 78px; font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; font-weight: 600; }
+    .bansos-result-value { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 13px; word-break: break-all; }
+    .bansos-copy-btn {
+      flex-shrink: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card);
+      color: var(--text-muted); cursor: pointer; font-size: 13px; transition: all .15s;
+    }
+    .bansos-copy-btn:hover { color: var(--primary); border-color: var(--primary); background: var(--primary-light); }
+
+    .bansos-terminal {
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 14px; margin-top: 22px; font-family: var(--font-mono); font-size: 13px;
+    }
+    .bansos-terminal-header { display: flex; align-items: center; gap: 8px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border-soft); color: var(--text-muted); }
+    .bansos-terminal-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .bansos-terminal-body { max-height: 180px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+    .bansos-log-info { color: var(--info); }
+    .bansos-log-success { color: var(--success); }
+    .bansos-log-error { color: var(--coral); }
+    .bansos-log-warn { color: var(--warning); }
+
+    .react-emoji-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .react-emoji-chip {
+      width: 46px; height: 46px; display: flex; align-items: center; justify-content: center;
+      font-size: 22px; line-height: 1; cursor: pointer; user-select: none;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      transition: all .15s;
+    }
+    .react-emoji-chip:hover { border-color: var(--primary); }
+    .react-emoji-chip.selected { border-color: var(--primary); background: var(--primary-light); box-shadow: 0 0 0 3px rgba(var(--primary-rgb), .18); }
+    .react-custom-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .react-custom-row .form-control { flex: 1; min-width: 0; }
+    .react-emoji-hint { font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; }
+
+    .bulk-processing-box { text-align: center; padding: 26px 14px; }
+    .bulk-processing-box .loading-spinner { margin: 0 auto 14px; }
+    .bulk-processing-box .bp-title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+    .bulk-processing-box .bp-sub { font-size: 13px; color: var(--text-muted); }
+    .bulk-account-card { margin-bottom: 10px; }
+    .bulk-account-card .bac-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; color: var(--success); font-weight: 700; font-size: 13px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon"><i class="fas fa-store"></i></div>
+        <span>{{brand.storeName}}</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Menu Utama</div>
+      <div class="nav-item" data-href="/dashboard"><span class="nav-icon"><i class="fas fa-home"></i></span> Dashboard</div>
+      <div class="nav-item" data-href="/order"><span class="nav-icon"><i class="fas fa-cart-shopping"></i></span> Marketplace</div>
+      <div class="nav-item" data-href="/topup"><span class="nav-icon"><i class="fas fa-bolt"></i></span> Topup Game</div>
+      <div class="nav-item" data-href="/ppob"><span class="nav-icon"><i class="fas fa-receipt"></i></span> PPOB</div>
+      <div class="nav-item" data-href="/sosmed"><span class="nav-icon"><i class="fas fa-share-nodes"></i></span> Sosial Media</div>
+      <div class="nav-item" data-href="/nokos"><span class="nav-icon"><i class="fas fa-sim-card"></i></span> Nomor OTP</div>
+      <div class="nav-item" data-href="/appprem"><span class="nav-icon"><i class="fas fa-crown"></i></span> App Premium</div>
+      <div class="nav-item" data-href="/bansos"><span class="nav-icon"><i class="fas fa-gift"></i></span> Bansos Warhead</div>
+      <div class="nav-item" data-href="/subdomain"><span class="nav-icon"><i class="fas fa-globe"></i></span> Subdomain</div>
+      <div class="nav-item" data-href="/panel"><span class="nav-icon"><i class="fas fa-server"></i></span> Panel Pterodactyl</div>
+      <div class="nav-item" data-href="/tools"><span class="nav-icon"><i class="fas fa-toolbox"></i></span> Tools</div>
+      <div class="nav-item" data-href="/pricelist"><span class="nav-icon"><i class="fas fa-tags"></i></span> Daftar Harga</div>
+      <div class="nav-item" data-href="/member"><span class="nav-icon"><i class="fas fa-gem"></i></span> Member</div>
+      <div class="nav-item" data-href="/h2h"><span class="nav-icon"><i class="fas fa-plug-circle-bolt"></i></span> H2H API</div>
+      <div class="nav-item" data-href="/leaderboard"><span class="nav-icon"><i class="fas fa-trophy"></i></span> Leaderboard</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" data-user-avatar></div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" data-user-name>...</div>
+          <div class="sidebar-user-role" data-user-role>Member</div>
+        </div>
+      </div>
+      <div class="nav-item mt-8" data-logout style="color:var(--danger)"><span class="nav-icon"><i class="fas fa-sign-out-alt"></i></span> Keluar</div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebar-toggle"><i class="fas fa-bars"></i></button>
+      <div class="topbar-title">Bansos Warhead</div>
+      <div class="topbar-actions">
+        <span class="badge badge-primary" style="font-family:var(--font-mono)" data-balance>Rp 0</span>
+        <div class="notif-bell-wrapper" id="topbar-chat-wrapper">
+          <button class="btn-icon" id="topbar-chat-btn" onclick="location.href='/messages'" title="Pesan Jual Beli"><i class="fas fa-comment-dots"></i></button>
+          <span class="notif-badge" id="chat-unread-badge"></span>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <div class="card-header" style="padding:0 0 14px 0;border:none">
+        <div><span class="eyebrow">Bansos Warhead</span><h2 style="font-size:17px">Giveaway berbagai macam layanan</h2></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+        <div class="card bansos-stat-card">
+          <div class="stat-label">Total Alight Motion Terverifikasi</div>
+          <div class="stat-value" id="stat-am-total">0</div>
+        </div>
+        <div class="card bansos-stat-card">
+          <div class="stat-label">Total Token Netflix Dibuat</div>
+          <div class="stat-value" id="stat-netflix-total">0</div>
+        </div>
+        <div class="card bansos-stat-card" id="stat-react-card">
+          <div class="stat-label">Total React WA Terkirim</div>
+          <div class="stat-value" id="stat-react-total">0</div>
+        </div>
+        <div class="card bansos-stat-card" id="stat-panel-card" style="display:none">
+          <div class="stat-label">Total Panel Gratis Diambil</div>
+          <div class="stat-value" id="stat-panel-total">0</div>
+        </div>
+      </div>
+
+      <div class="bansos-tabs">
+        <button class="btn btn-primary" id="tab-btn-am" onclick="switchTab('am')"><i class="fas fa-film"></i> Alight Motion</button>
+        <button class="btn btn-outline" id="tab-btn-bulk" onclick="switchTab('bulk')"><i class="fas fa-layer-group"></i> Bulk AM</button>
+        <button class="btn btn-outline" id="tab-btn-react" onclick="switchTab('react')"><i class="fas fa-comment-dots"></i> React WA</button>
+        <button class="btn btn-outline" id="tab-btn-ptero" onclick="switchTab('ptero')" style="display:none"><i class="fas fa-server"></i> Panel Gratis</button>
+        <button class="btn btn-outline" id="tab-btn-netflix" onclick="switchTab('netflix')"><i class="fas fa-tv"></i> Netflix Token</button>
+      </div>
+
+      <div class="card" style="padding:20px">
+
+        <div id="tab-am" class="bansos-tab-content active">
+          <div class="card-header" style="padding:0 0 14px 0;border:none"><span class="card-title">Verifikasi Alight Motion</span></div>
+
+          <label class="form-label" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Pilih Server</label>
+          <div class="am-server-switch" style="margin-bottom:16px">
+            <button type="button" class="btn btn-primary" id="am-server-1" onclick="setAmServer(1)"><i class="fas fa-server"></i> Server 1</button>
+            <button type="button" class="btn btn-outline" id="am-server-2" onclick="setAmServer(2)"><i class="fas fa-server"></i> Server 2</button>
+          </div>
+
+          <div id="am-step-1" class="bansos-step">
+            <label class="form-label" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Alamat Gmail</label>
+            <input type="email" id="am-email" class="form-control" placeholder="user@gmail.com" style="margin-bottom:12px">
+            <button class="btn btn-primary btn-full" id="am-send-btn" onclick="sendAmLink()"><i class="fas fa-paper-plane"></i> 1. Kirim Magic Link</button>
+          </div>
+
+          <p style="font-size:12.5px;color:var(--text-muted);margin:14px 0 0">Sudah punya magic link dari email? Langsung isi di bawah, tanpa perlu kirim magic link lagi.</p>
+          <div id="am-step-2" class="bansos-step" style="margin-top:10px">
+            <label class="form-label" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Tempel Magic Link dari Email</label>
+            <input type="text" id="am-link" class="form-control" placeholder="https://alight-creative.firebaseapp.com/..." style="margin-bottom:12px">
+            <button class="btn btn-success btn-full" id="am-verify-btn" onclick="verifyAm()"><i class="fas fa-check"></i> 2. Proses Verifikasi</button>
+          </div>
+
+          <div id="am-result"></div>
+        </div>
+
+        <div id="tab-bulk" class="bansos-tab-content">
+          <div class="card-header" style="padding:0 0 14px 0;border:none"><span class="card-title">Bulk Generate Alight Motion</span></div>
+          <p style="font-size:13px;color:var(--text-muted);margin:-6px 0 16px">
+            Generate beberapa akun Alight Motion sekaligus (maks <span class="bulk-max-inline">5</span> akun/proses). — dibatasi cooldown 5 menit per proses.
+          </p>
+
+          <label class="form-label" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Jumlah Akun (1-<span class="bulk-max-inline">5</span>)</label>
+          <div class="qty-stepper" style="margin-bottom:18px">
+            <button type="button" id="bulk-qty-minus">−</button>
+            <input type="text" id="bulk-qty-input" value="5" readonly>
+            <button type="button" id="bulk-qty-plus">+</button>
+          </div>
+
+          <button class="btn btn-primary btn-full btn-lg" id="bulk-generate-btn" onclick="generateBulkAm()"><i class="fas fa-bolt"></i> Generate Akun Sekarang</button>
+
+          <div id="bulk-processing-box" class="bansos-result-box bulk-processing-box" style="display:none">
+            <div class="loading-spinner"></div>
+            <div class="bp-title">Memproses Akun...</div>
+            <div class="bp-sub">bisa beberapa menit</div>
+          </div>
+
+          <div id="bulk-result"></div>
+        </div>
+
+        <div id="tab-react" class="bansos-tab-content">
+          <div class="card-header" style="padding:0 0 14px 0;border:none"><span class="card-title">React Postingan Channel WhatsApp</span></div>
+          <p style="font-size:13px;color:var(--text-muted);margin:-6px 0 16px">
+            Kirim reaksi emoji ke postingan Channel WhatsApp. Gratis.
+          </p>
+
+          <label class="form-label" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Link Postingan Channel</label>
+          <input type="url" id="react-url" class="form-control" placeholder="https://whatsapp.com/channel/xxxx/123" style="margin-bottom:14px" autocomplete="off">
+
+          <label class="form-label" style="display:block;font-size:13px;font-weight:600;margin-bottom:8px">Pilih Reaksi (<span id="react-count">4</span>/4)</label>
+          <div class="react-emoji-grid" id="react-emoji-grid"></div>
+          <div class="react-custom-row">
+            <input type="text" id="react-custom" class="form-control" placeholder="Emoji sendiri, pisah koma: 🤩,💀,🫡" autocomplete="off">
+            <button type="button" class="btn btn-outline" onclick="addCustomEmoji()"><i class="fas fa-plus"></i> Tambah</button>
+          </div>
+          <div class="react-emoji-hint">Ketuk emoji untuk memilih / melepas. Minimal 1, maksimal 4.</div>
+
+          <button class="btn btn-primary btn-full btn-lg" id="react-btn" onclick="sendReactWa()"><i class="fas fa-paper-plane"></i> Kirim React Sekarang</button>
+          <div id="react-result"></div>
+        </div>
+
+        <div id="tab-netflix" class="bansos-tab-content">
+          <div class="card-header" style="padding:0 0 14px 0;border:none"><span class="card-title">Generate Token Netflix</span></div>
+          <p style="font-size:13px;color:var(--text-muted);margin:-6px 0 16px">
+            Tekan tombol di bawah untuk mendapatkan link premium Netflix otomatis.
+          </p>
+          <button class="btn btn-primary btn-full btn-lg" id="netflix-btn" onclick="generateNetflix()"><i class="fas fa-bolt"></i> Generate Token Sekarang</button>
+          <div id="netflix-result"></div>
+        </div>
+
+        <div id="tab-ptero" class="bansos-tab-content">
+          <div class="card-header" style="padding:0 0 14px 0;border:none"><span class="card-title">Buat Panel Gratis</span></div>
+
+          <div id="ptero-guest-notice" style="display:none">
+            <p style="font-size:13px;color:var(--text-muted);margin:-6px 0 16px">
+              Fitur ini khusus member terdaftar. Masuk atau daftar dulu untuk mendapat jatah 1x buat panel gratis.
+            </p>
+            <button class="btn btn-primary btn-full" onclick="Auth.goToLogin()"><i class="fas fa-right-to-bracket"></i> Masuk / Daftar</button>
+          </div>
+
+          <div id="ptero-user-area" style="display:none">
+
+            <div class="bansos-result-box" style="margin-bottom:16px">
+              <div class="bansos-result-row"><span class="bansos-result-label">Kuota kamu</span><span class="badge badge-secondary"><span id="ptero-quota">-</span>x jatah tersisa</span></div>
+            </div>
+
+            <div id="ptero-form">
+              <label class="form-label" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Username Panel</label>
+              <input type="text" id="ptero-username" class="form-control" placeholder="cth: warheadganteng" style="margin-bottom:12px" maxlength="30">
+              <button class="btn btn-primary btn-full" id="ptero-create-btn" onclick="createPteroPanel()"><i class="fas fa-server"></i> Buat Panel Sekarang</button>
+            </div>
+
+            <div id="ptero-result"></div>
+
+            <div class="bansos-result-box" style="margin-top:20px">
+              <div class="card-header" style="padding:0 0 10px 0;border:none"><span class="card-title" style="font-size:13px">Ajak Teman, Dapat Kuota</span></div>
+              <p style="font-size:13px;color:var(--text-muted);margin:0 0 10px">
+                Bagikan link di bawah. Setiap 1 orang yang <strong>mendaftar</strong> lewat link kamu akan otomatis menambah <strong>+1 jatah</strong> buat panel gratis.
+              </p>
+              <div class="bansos-result-row">
+                <span class="bansos-result-value" id="ptero-ref-link" style="word-break:break-all">-</span>
+                <button type="button" class="bansos-copy-btn" onclick="copyReferralLink()" title="Salin"><i class="fas fa-copy"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="bansos-terminal">
+        <div class="bansos-terminal-header">
+          <span class="bansos-terminal-dot" style="background:var(--coral)"></span>
+          <span class="bansos-terminal-dot" style="background:var(--warning)"></span>
+          <span class="bansos-terminal-dot" style="background:var(--success)"></span>
+          <span style="margin-left:4px">bansos_activity.log</span>
+        </div>
+        <div class="bansos-terminal-body" id="terminal-output">[SYSTEM] Sistem Bansos siap digunakan.
+[READY] Silakan pilih layanan yang ingin dieksekusi.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
+<script src="/js/cs.js"></script>
+<script>
+const terminal = document.getElementById('terminal-output');
+
+function logMsg(msg, type = 'info') {
+  const cls = { info: 'bansos-log-info', success: 'bansos-log-success', error: 'bansos-log-error', warn: 'bansos-log-warn' };
+  const line = document.createElement('div');
+  line.className = cls[type] || 'bansos-log-info';
+  line.textContent = `[${type.toUpperCase()}] ${msg}`;
+  terminal.appendChild(line);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function switchTab(tabId) {
+  document.querySelectorAll('.bansos-tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${tabId}`).classList.add('active');
+  ['am', 'bulk', 'react', 'ptero', 'netflix'].forEach(t => {
+    document.getElementById(`tab-btn-${t}`).className = `btn ${t === tabId ? 'btn-primary' : 'btn-outline'}`;
+  });
+}
+
+async function fetchStats() {
+  const res = await API.get('/api/bansos/stats');
+  if (!res.success) return;
+  document.getElementById('stat-am-total').textContent = res.data.totals.alightMotion ?? 0;
+  document.getElementById('stat-netflix-total').textContent = res.data.totals.netflix ?? 0;
+  document.getElementById('stat-react-total').textContent = res.data.totals.reactWa ?? 0;
+
+  document.getElementById('stat-panel-total').textContent = res.data.totals.panel ?? 0;
+  document.getElementById('stat-panel-card').style.display = res.data.ptero_enabled ? '' : 'none';
+  // Panel nonaktif -> kartu React melebar penuh supaya grid tidak bolong
+  document.getElementById('stat-react-card').style.gridColumn = res.data.ptero_enabled ? '' : '1/-1';
+
+  const pteroBtn = document.getElementById('tab-btn-ptero');
+  if (res.data.ptero_enabled) {
+    pteroBtn.style.display = '';
+  } else {
+    pteroBtn.style.display = 'none';
+    if (document.getElementById('tab-ptero').classList.contains('active')) switchTab('am');
+  }
+}
+
+function setLoading(btn, loading) {
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.classList.toggle('btn-loading', loading);
+}
+
+let amServer = 1;
+function setAmServer(n) {
+  amServer = n === 2 ? 2 : 1;
+  document.getElementById('am-server-1').className = `btn ${amServer === 1 ? 'btn-primary' : 'btn-outline'}`;
+  document.getElementById('am-server-2').className = `btn ${amServer === 2 ? 'btn-primary' : 'btn-outline'}`;
+}
+
+async function sendAmLink() {
+  if (!Auth.requireLogin('Masuk atau daftar dulu untuk klaim bansos.')) return;
+  const email = document.getElementById('am-email').value.trim();
+  if (!email) { Toast.warning('Harap masukkan alamat email.'); return; }
+
+  const btn = document.getElementById('am-send-btn');
+  setLoading(btn, true);
+  logMsg(`Memproses pengiriman link ke: ${email}...`, 'info');
+  const res = await API.post('/api/bansos/am/send', { email, server: amServer });
+  setLoading(btn, false);
+
+  if (res.success) {
+    logMsg(res.message, 'success');
+    Toast.success(res.message);
+  } else {
+    logMsg(res.message, 'error');
+    Toast.error(res.message);
+  }
+}
+
+async function verifyAm() {
+  if (!Auth.requireLogin('Masuk atau daftar dulu untuk klaim bansos.')) return;
+  const email = document.getElementById('am-email').value.trim();
+  const link = document.getElementById('am-link').value.trim();
+  if (!email) { Toast.warning('Harap masukkan alamat email.'); return; }
+  if (!link) { Toast.warning('Harap masukkan magic link.'); return; }
+
+  const btn = document.getElementById('am-verify-btn');
+  setLoading(btn, true);
+  logMsg('Memverifikasi akun Alight Motion...', 'info');
+  const res = await API.post('/api/bansos/am/verify', { email, link, server: amServer });
+  setLoading(btn, false);
+
+  if (res.success) {
+    logMsg(res.message, 'success');
+    Toast.success(res.message);
+    document.getElementById('am-result').innerHTML = `
+      <div class="bansos-result-box">
+        <div class="bansos-result-row"><span class="bansos-result-label">Status</span><span class="badge badge-success">${escapeHtml(res.data.type || '-')}</span></div>
+        <div class="bansos-result-row"><span class="bansos-result-label">Durasi</span><span class="bansos-result-value">${escapeHtml(res.data.duration || '-')}</span></div>
+      </div>`;
+    fetchStats();
+  } else {
+    logMsg(res.message, 'error');
+    Toast.error(res.message);
+  }
+}
+
+async function generateNetflix() {
+  if (!Auth.requireLogin('Masuk atau daftar dulu untuk klaim bansos.')) return;
+  const btn = document.getElementById('netflix-btn');
+  setLoading(btn, true);
+  logMsg('Mengeksekusi generator token Netflix...', 'info');
+  const res = await API.post('/api/bansos/netflix/generate', {});
+  setLoading(btn, false);
+
+  if (res.success) {
+    logMsg('Token berhasil dibuat!', 'success');
+    Toast.success('Token Netflix berhasil dibuat');
+    const links = res.data.links || {};
+    const rows = Object.keys(links).map(k => {
+      const esc = String(links[k]).replace(/'/g, "\\'");
+      return `
+        <div class="bansos-result-row">
+          <span class="bansos-result-label">${escapeHtml(k)}</span>
+          <span class="bansos-result-value">${escapeHtml(links[k])}</span>
+          <button type="button" class="bansos-copy-btn" onclick="copyText('${esc}', '${escapeHtml(k)}')" title="Salin"><i class="fas fa-copy"></i></button>
+        </div>`;
+    }).join('');
+    document.getElementById('netflix-result').innerHTML = `
+      <div class="bansos-result-box">
+        <div class="bansos-result-row"><span class="bansos-result-label">Plan</span><span class="bansos-result-value">${escapeHtml(res.data.plan || '-')}</span></div>
+        <div class="bansos-result-row"><span class="bansos-result-label">Kualitas</span><span class="bansos-result-value">${escapeHtml(res.data.quality || '-')}</span></div>
+        ${rows}
+      </div>`;
+    fetchStats();
+  } else {
+    logMsg(res.message, 'error');
+    Toast.error(res.message);
+  }
+}
+
+// --- React WA ---
+let REACT_EMOJIS = ['🔥', '❤️', '🥶', '😱', '👍', '😂', '😮', '😢', '🙏', '🎉', '😍', '🤯'];
+const REACT_MAX = 4;
+let reactSelected = ['🔥', '❤️', '🥶', '😱'];
+
+function renderReactEmojis() {
+  const grid = document.getElementById('react-emoji-grid');
+  grid.innerHTML = REACT_EMOJIS.map(e =>
+    `<div class="react-emoji-chip${reactSelected.includes(e) ? ' selected' : ''}" data-emoji="${e}" role="button" tabindex="0">${e}</div>`
+  ).join('');
+  document.getElementById('react-count').textContent = reactSelected.length;
+}
+
+document.getElementById('react-emoji-grid').addEventListener('click', (ev) => {
+  const chip = ev.target.closest('.react-emoji-chip');
+  if (!chip) return;
+  const e = chip.dataset.emoji;
+  if (reactSelected.includes(e)) {
+    reactSelected = reactSelected.filter(x => x !== e);
+  } else {
+    if (reactSelected.length >= REACT_MAX) { Toast.warning(`Maksimal ${REACT_MAX} emoji.`); return; }
+    reactSelected.push(e);
+  }
+  renderReactEmojis();
+});
+renderReactEmojis();
+
+// Emoji custom: user ketik sendiri, dipisah koma. Emoji valid otomatis masuk grid & terpilih.
+const REACT_EMOJI_RE = /^\p{Extended_Pictographic}(\uFE0F|\u200D\p{Extended_Pictographic}|\p{Emoji_Modifier})*$/u;
+function addCustomEmoji() {
+  const input = document.getElementById('react-custom');
+  const parts = input.value.split(/[,，、]/).map(x => x.trim()).filter(Boolean);
+  if (!parts.length) { Toast.warning('Ketik emoji dulu, pisahkan dengan koma.'); return; }
+  let added = 0, invalid = 0, full = false;
+  for (const e of parts) {
+    if (e.length > 16 || !REACT_EMOJI_RE.test(e)) { invalid++; continue; }
+    if (!REACT_EMOJIS.includes(e)) REACT_EMOJIS.push(e);
+    if (reactSelected.includes(e)) continue;
+    if (reactSelected.length >= REACT_MAX) { full = true; break; }
+    reactSelected.push(e);
+    added++;
+  }
+  renderReactEmojis();
+  if (full) Toast.warning(`Maksimal ${REACT_MAX} emoji, sisanya tidak dimasukkan.`);
+  else if (invalid) Toast.warning(`${invalid} input bukan emoji valid dan dilewati.`);
+  if (added || !invalid) input.value = '';
+}
+document.getElementById('react-custom').addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter') { ev.preventDefault(); addCustomEmoji(); }
+});
+
+// Tombol dikunci selama jeda global (30 dtk) supaya user tidak spam klik.
+let reactCooldownTimer = null;
+function startReactCooldown(seconds) {
+  const btn = document.getElementById('react-btn');
+  if (!btn || !(seconds > 0)) return;
+  clearInterval(reactCooldownTimer);
+  const origHtml = '<i class="fas fa-paper-plane"></i> Kirim React Sekarang';
+  let left = Math.ceil(seconds);
+  btn.disabled = true;
+  const tick = () => {
+    if (left <= 0) {
+      clearInterval(reactCooldownTimer);
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+      return;
+    }
+    btn.innerHTML = `<i class="fas fa-clock"></i> Tunggu ${left} detik`;
+    left--;
+  };
+  tick();
+  reactCooldownTimer = setInterval(tick, 1000);
+}
+
+async function sendReactWa() {
+  if (!Auth.requireLogin('Masuk atau daftar dulu untuk klaim bansos.')) return;
+  const url = document.getElementById('react-url').value.trim();
+  if (!url) { Toast.warning('Harap masukkan link postingan channel.'); return; }
+  if (!reactSelected.length) { Toast.warning('Pilih minimal 1 emoji.'); return; }
+
+  const btn = document.getElementById('react-btn');
+  setLoading(btn, true);
+  logMsg('Mengirim react ke postingan channel...', 'info');
+  const res = await API.post('/api/bansos/react-wa', { url, reactions: reactSelected });
+  setLoading(btn, false);
+
+  if (res.success) {
+    logMsg(res.message, 'success');
+    Toast.success(res.message);
+    document.getElementById('react-result').innerHTML = `
+      <div class="bansos-result-box">
+        <div class="bansos-result-row"><span class="bansos-result-label">Status</span><span class="badge badge-success">Berhasil</span></div>
+        <div class="bansos-result-row"><span class="bansos-result-label">Reaksi</span><span class="bansos-result-value">${(res.data?.reactions || []).map(escapeHtml).join(' ')}</span></div>
+      </div>`;
+    fetchStats();
+    startReactCooldown(res.data?.retry_after);
+  } else {
+    logMsg(res.message, 'error');
+    Toast.error(res.message);
+    startReactCooldown(res.data?.retry_after);
+  }
+}
+
+// --- Bulk AM ---
+let bulkPollTimer = null;
+let bulkLockCountdownTimer = null;
+let bulkAccountsCache = [];
+
+document.getElementById('bulk-qty-minus').addEventListener('click', () => bulkQtyStep(-1));
+document.getElementById('bulk-qty-plus').addEventListener('click', () => bulkQtyStep(1));
+
+function bulkQtyStep(delta) {
+  const input = document.getElementById('bulk-qty-input');
+  const max = parseInt(document.querySelector('.bulk-max-inline')?.textContent, 10) || 5;
+  let v = (parseInt(input.value, 10) || 1) + delta;
+  v = Math.min(max, Math.max(1, v));
+  input.value = v;
+}
+
+function setBulkButtonState(state, waitSeconds) {
+  const btn = document.getElementById('bulk-generate-btn');
+  if (!btn) return;
+  clearInterval(bulkLockCountdownTimer);
+  if (state === 'processing') {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+  } else if (state === 'locked') {
+    let remaining = Math.max(0, waitSeconds || 0);
+    const tick = () => {
+      if (remaining <= 0) {
+        clearInterval(bulkLockCountdownTimer);
+        setBulkButtonState('idle');
+        fetchBulkStatus();
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fas fa-clock"></i> Tunggu ${remaining}s...`;
+      remaining -= 1;
+    };
+    tick();
+    bulkLockCountdownTimer = setInterval(tick, 1000);
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-bolt"></i> Generate Akun Sekarang';
+  }
+}
+
+function schedulePoll(ms) {
+  clearTimeout(bulkPollTimer);
+  bulkPollTimer = setTimeout(fetchBulkStatus, ms);
+}
+
+function renderBulkResults(results) {
+  const accounts = results?.accounts || [];
+  bulkAccountsCache = accounts;
+  const box = document.getElementById('bulk-result');
+  if (!accounts.length) { box.innerHTML = ''; return; }
+
+  const cards = accounts.map((acc, i) => {
+    const emailEsc = escapeHtml(acc.email).replace(/'/g, "\\'");
+    const inboxRow = acc.inbox ? `
+        <div class="bansos-result-row"><span class="bansos-result-label">Inbox</span><span class="bansos-result-value"><a href="${escapeHtml(acc.inbox)}" target="_blank" rel="noopener">${escapeHtml(acc.inbox)}</a></span>
+          <button type="button" class="bansos-copy-btn" onclick="copyText('${escapeHtml(acc.inbox).replace(/'/g, "\\'")}', 'Link inbox')" title="Salin"><i class="fas fa-copy"></i></button></div>` : '';
+    return `
+      <div class="bansos-result-box bulk-account-card">
+        <div class="bac-head"><i class="fas fa-circle-check"></i> Akun ${i + 1}</div>
+        <div class="bansos-result-row"><span class="bansos-result-value">${escapeHtml(acc.email)}</span>
+          <button type="button" class="bansos-copy-btn" onclick="copyText('${emailEsc}', 'Email')" title="Salin"><i class="fas fa-copy"></i></button></div>
+        ${inboxRow}
+      </div>`;
+  }).join('');
+
+  box.innerHTML = `
+    <p style="font-size:13px;font-weight:700;margin:18px 0 10px">Berhasil dibuat: ${accounts.length} akun</p>
+    ${cards}
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button type="button" class="btn btn-outline btn-full" onclick="copyAllBulkAccounts()"><i class="fas fa-copy"></i> Salin Semua</button>
+      <button type="button" class="btn btn-full" style="background:var(--text);color:var(--bg-card)" onclick="downloadBulkAccounts()"><i class="fas fa-download"></i> Download .txt</button>
+    </div>`;
+}
+
+function bulkAccountsAsText() {
+  return bulkAccountsCache.map(a => `${a.email}${a.inbox ? ' | ' + a.inbox : ''}`).join('\n');
+}
+
+function copyAllBulkAccounts() {
+  if (!bulkAccountsCache.length) return;
+  copyText(bulkAccountsAsText(), 'Semua akun');
+}
+
+function downloadBulkAccounts() {
+  if (!bulkAccountsCache.length) return;
+  const blob = new Blob([bulkAccountsAsText()], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bulk-am-${Date.now()}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function fetchBulkStatus() {
+  const res = await API.get('/api/bansos/am/bulk/status');
+  if (!res.success) return;
+  const { locked, waitSeconds, job, maxTotal } = res.data;
+
+  if (maxTotal) {
+    document.querySelectorAll('.bulk-max-inline').forEach(el => { el.textContent = maxTotal; });
+  }
+
+  if (job && job.status === 'processing') {
+    document.getElementById('bulk-processing-box').style.display = '';
+    setBulkButtonState('processing');
+    schedulePoll(3000);
+    return;
+  }
+
+  document.getElementById('bulk-processing-box').style.display = 'none';
+
+  if (job && job.status === 'done' && job.results) {
+    renderBulkResults(job.results);
+    fetchStats();
+  } else if (job && job.status === 'error' && job.error) {
+    logMsg(job.error, 'error');
+  }
+
+  setBulkButtonState(locked ? 'locked' : 'idle', waitSeconds);
+}
+
+async function generateBulkAm() {
+  if (!Auth.requireLogin('Masuk atau daftar dulu untuk klaim bansos.')) return;
+
+  const total = Math.min(5, Math.max(1, parseInt(document.getElementById('bulk-qty-input').value, 10) || 1));
+
+  logMsg(`Memulai generate ${total} akun Premium...`, 'info');
+  const res = await API.post('/api/bansos/am/bulk', { total });
+
+  if (res.success) {
+    document.getElementById('bulk-processing-box').style.display = '';
+    document.getElementById('bulk-result').innerHTML = '';
+    setBulkButtonState('processing');
+    schedulePoll(2500);
+  } else if (res.queued) {
+    Toast.warning(res.message);
+    logMsg(res.message, 'warn');
+    setBulkButtonState('locked', res.waitSeconds || 60);
+  } else {
+    Toast.error(res.message);
+    logMsg(res.message, 'error');
+  }
+}
+
+async function fetchPteroStatus() {
+  const res = await API.get('/api/bansos/ptero/status');
+  if (!res.success) return;
+  document.getElementById('ptero-quota').textContent = res.data.quota;
+  const refLink = `${window.location.origin}/register?ref=${res.data.referral_code}`;
+  document.getElementById('ptero-ref-link').textContent = refLink;
+
+  const createBtn = document.getElementById('ptero-create-btn');
+  if (!res.data.enabled) {
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<i class="fas fa-ban"></i> Fitur Dinonaktifkan';
+  } else if (res.data.quota <= 0) {
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<i class="fas fa-ban"></i> Jatah Habis';
+  } else if (!res.data.configured) {
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<i class="fas fa-clock"></i> Belum Tersedia';
+  }
+}
+
+function copyReferralLink() {
+  const text = document.getElementById('ptero-ref-link').textContent;
+  if (!text || text === '-') return;
+  copyText(text, 'Link referral');
+}
+
+async function createPteroPanel() {
+  const username = document.getElementById('ptero-username').value.trim();
+  if (!username) { Toast.warning('Harap masukkan username.'); return; }
+
+  const btn = document.getElementById('ptero-create-btn');
+  setLoading(btn, true);
+  logMsg(`Membuat panel gratis untuk username: ${username}...`, 'info');
+  const res = await API.post('/api/bansos/ptero/create', { username });
+  setLoading(btn, false);
+
+  if (res.success) {
+    logMsg('Panel berhasil dibuat!', 'success');
+    Toast.success('Panel berhasil dibuat');
+    const d = res.data;
+    document.getElementById('ptero-result').innerHTML = `
+      <div class="bansos-result-box">
+        <div class="bansos-result-row"><span class="bansos-result-label">Login URL</span><span class="bansos-result-value">${escapeHtml(d.panel_url)}</span><button type="button" class="bansos-copy-btn" onclick="copyText('${escapeHtml(d.panel_url).replace(/'/g, "\\'")}', 'Login URL')" title="Salin"><i class="fas fa-copy"></i></button></div>
+        <div class="bansos-result-row"><span class="bansos-result-label">Username</span><span class="bansos-result-value">${escapeHtml(d.username)}</span><button type="button" class="bansos-copy-btn" onclick="copyText('${escapeHtml(d.username).replace(/'/g, "\\'")}', 'Username')" title="Salin"><i class="fas fa-copy"></i></button></div>
+        <div class="bansos-result-row"><span class="bansos-result-label">Password</span><span class="bansos-result-value">${escapeHtml(d.password)}</span><button type="button" class="bansos-copy-btn" onclick="copyText('${escapeHtml(d.password).replace(/'/g, "\\'")}', 'Password')" title="Salin"><i class="fas fa-copy"></i></button></div>
+      </div>
+      <p style="font-size:13px;color:var(--warning);margin-top:10px"><i class="fas fa-triangle-exclamation"></i> Catat sekarang — data ini tidak disimpan dan tidak akan ditampilkan lagi.</p>`;
+    document.getElementById('ptero-form').style.display = 'none';
+    fetchPteroStatus();
+  } else {
+    logMsg(res.message, 'error');
+    Toast.error(res.message);
+    fetchPteroStatus();
+  }
+}
+
+async function init() {
+  const res = await Auth.checkOptional();
+  if (res) {
+    Auth.renderUserInfo(res.user, res.wallet);
+    document.getElementById('ptero-user-area').style.display = '';
+    document.getElementById('ptero-guest-notice').style.display = 'none';
+    fetchPteroStatus();
+  } else {
+    Auth.renderGuestUI();
+    document.getElementById('ptero-user-area').style.display = 'none';
+    document.getElementById('ptero-guest-notice').style.display = '';
+  }
+  await fetchStats();
+  fetchBulkStatus();
+}
+init();
+</script>
+<script src="/js/notebook.js" defer></script>
+</body>
+</html>
